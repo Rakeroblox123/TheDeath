@@ -1,0 +1,530 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local teleport = game.Workspace.Lobby.Portals.NormalArena.Decoration.Part
+ 
+character.HumanoidRootPart.CFrame = teleport.CFrame
+wait(0.5)
+local tool = character:FindFirstChildOfClass("Tool")
+tool.Parent = game.ReplicatedStorage
+character.Humanoid.Health = 0
+wait(4)
+player = game.Players.LocalPlayer
+character = player.Character or player.CharacterAdded:Wait()
+tool.Parent = character
+character.HumanoidRootPart.CFrame = game.Workspace.Origo.CFrame
+task.wait(10)
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+local function makeCharacterFullyBlack()
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") or part:IsA("MeshPart") then
+            part.Color = Color3.new(0, 0, 0)
+            part.Material = Enum.Material.SmoothPlastic
+        elseif part:IsA("Accessory") then
+            local handle = part:FindFirstChild("Handle")
+            if handle then
+                handle.Color = Color3.new(0, 0, 0)
+                handle.Material = Enum.Material.SmoothPlastic
+
+                for _, child in pairs(handle:GetDescendants()) do
+                    if child:IsA("MeshPart") or child:IsA("UnionOperation") or child:IsA("SpecialMesh") then
+                        child.Color = Color3.new(0, 0, 0)
+                        child.Material = Enum.Material.SmoothPlastic
+                        if child:IsA("SpecialMesh") then
+                            child.TextureId = ""
+                        end
+                    end
+                end
+            end
+        elseif part:IsA("Decal") or part:IsA("Texture") then
+            part:Destroy()
+        elseif part:IsA("Clothing") or part:IsA("ShirtGraphic") then
+            part:Destroy()
+        end
+    end
+
+    local outline = Instance.new("Highlight")
+    outline.Parent = character
+    outline.OutlineColor = Color3.new(0, 0, 0)
+    outline.FillTransparency = 1
+end
+
+makeCharacterFullyBlack()
+
+local ModelDeath = game:GetObjects("rbxassetid://12195574482")[1]
+if ModelDeath then
+    for i,a in pairs(ModelDeath.Torso:GetDescendants()) do
+        if a.Name == "Attachment4" or a.Name == "Flare" or a.Name == "Star3" or a.Name == "Bits" then
+            a:Destroy() 
+        end
+    end
+    for i,a in pairs(ModelDeath.Torso:GetChildren()) do
+        if a.ClassName == "Attachment" and a:FindFirstChildWhichIsA("ParticleEmitter") then
+            a:Clone().Parent = game.Players.LocalPlayer.Character.Torso
+        end
+    end
+    ModelDeath:Destroy()
+end
+
+local player = game.Players.LocalPlayer
+local backpack = player:WaitForChild("Backpack")
+local leaderstats = player:FindFirstChild("leaderstats")
+
+for _, tool in pairs(backpack:GetChildren()) do
+    if tool:IsA("Tool") then
+        tool.Name = "Death"
+    end
+end
+
+if leaderstats then
+    for _, stat in pairs(leaderstats:GetChildren()) do
+        if stat:IsA("StringValue") or stat:IsA("IntValue") or stat:IsA("NumberValue") then
+            stat.Value = "Death"
+        end
+    end
+end
+
+local screenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.Name = "CustomGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "CustomButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.9, -100, 0.5, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Slash"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSans
+button.TextSize = 20
+
+button.MouseButton1Click:Connect(function()
+    local animation = Instance.new("Animation")
+    animation.AnimationId = "rbxassetid://16102413143"
+    local character = game.Players.LocalPlayer.Character
+    local humanoid = character and character:FindFirstChild("Humanoid")
+
+    if humanoid then
+        local animator = humanoid:FindFirstChild("Animator") or humanoid:WaitForChild("Animator")
+        local animationTrack = animator:LoadAnimation(animation)
+        animationTrack:Play()
+    end
+
+    local Players = game:GetService("Players")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local player = Players.LocalPlayer
+    local slapDistance = 30
+    local slapCooldown = 0.585
+    local lastSlapTime = 0
+    local slapEnabled = true
+    local selectedRemote = "PlagueHit"
+
+    local function slapClosestPlayer()
+        if not slapEnabled then return end
+
+        local closestPlayer = nil
+        local closestDistance = slapDistance
+
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local playerPosition = player.Character.HumanoidRootPart.Position
+
+            for _, otherPlayer in pairs(Players:GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local otherPlayerPosition = otherPlayer.Character.HumanoidRootPart.Position
+                    local distance = (playerPosition - otherPlayerPosition).Magnitude
+
+                    if distance <= closestDistance then
+                        closestDistance = distance
+                        closestPlayer = otherPlayer
+                    end
+                end
+            end
+
+            if closestPlayer and tick() - lastSlapTime >= slapCooldown then
+                lastSlapTime = tick()
+                if closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                    local head = closestPlayer.Character.Head
+                    local args = {head}
+                    local remote = ReplicatedStorage:FindFirstChild(selectedRemote)
+                    if remote then
+                        remote:FireServer(unpack(args))
+                    end
+                end
+            end
+        end
+    end
+
+    slapEnabled = true
+    local RunService = game:GetService("RunService")
+    local auraConnection = RunService.RenderStepped:Connect(function()
+        slapClosestPlayer()
+    end)
+
+    task.delay(0.3, function()
+        slapEnabled = false
+        auraConnection:Disconnect()
+    end)
+
+    local args = { [1] = "ScytheWeapon" }
+    local scytheRemote = ReplicatedStorage:FindFirstChild("Scythe")
+
+    if scytheRemote then
+        for i = 1, 3 do
+            scytheRemote:FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end
+end)
+
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "CustomGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "CustomButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.8, -100, 0.5, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Rapid slash"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSans
+button.TextSize = 15
+
+button.MouseButton1Click:Connect(function()
+    local animation = Instance.new("Animation")
+    animation.AnimationId = "rbxassetid://15436359788"
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        local track = humanoid:LoadAnimation(animation)
+        track:Play()
+    end
+
+    local lookVector = humanoidRootPart.CFrame.LookVector
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame + lookVector * 20
+
+    task.spawn(function()
+        local slapEnabled = true
+        local slapDistance = 30
+
+        local function slapClosestPlayer()
+            if not slapEnabled then return end
+
+            local closestPlayer = nil
+            local closestDistance = slapDistance
+
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local playerPosition = humanoidRootPart.Position
+
+                for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+                    if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local otherPlayerPosition = otherPlayer.Character.HumanoidRootPart.Position
+                        local distance = (playerPosition - otherPlayerPosition).Magnitude
+
+                        if distance <= closestDistance then
+                            closestDistance = distance
+                            closestPlayer = otherPlayer
+                        end
+                    end
+                end
+
+                if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                    local head = closestPlayer.Character.Head
+                    local args = {head}
+                    local remote = replicatedStorage:FindFirstChild("PlagueHit")
+                    if remote then
+                        remote:FireServer(unpack(args))
+                    end
+                end
+            end
+        end
+
+        local slapAuraConnection = game:GetService("RunService").RenderStepped:Connect(slapClosestPlayer)
+        task.wait(0.3)
+        slapEnabled = false
+        slapAuraConnection:Disconnect()
+    end)
+
+    for i = 1, 6 do
+        local scytheArgs = {
+            [1] = "ScytheWeapon"
+        }
+        local scytheRemote = replicatedStorage:FindFirstChild("Scythe")
+        if scytheRemote then
+            scytheRemote:FireServer(unpack(scytheArgs))
+        end
+        task.wait(0.1)
+    end
+
+    for i = 1, 2 do
+        local slapstickArgs = {
+            [1] = "fullcharged"
+        }
+        local slapstickRemote = replicatedStorage:FindFirstChild("slapstick")
+        if slapstickRemote then
+            slapstickRemote:FireServer(unpack(slapstickArgs))
+        end
+        task.wait(0.1)
+    end
+
+    if humanoid then
+        local originalWalkSpeed = humanoid.WalkSpeed
+        humanoid.WalkSpeed = 0
+        task.wait(1.2)
+        humanoid.WalkSpeed = originalWalkSpeed
+    end
+end)
+
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local tweenService = game:GetService("TweenService")
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "RageSmashGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "RageSmashButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.7, -100, 0.5, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Rage Smash"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 10
+
+button.MouseButton1Click:Connect(function()
+    humanoid.JumpPower = 70
+    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+
+    task.wait(0.3)
+
+    local targetPosition = humanoidRootPart.CFrame + humanoidRootPart.CFrame.LookVector * 30
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = tweenService:Create(humanoidRootPart, tweenInfo, {CFrame = targetPosition})
+    tween:Play()
+
+    tween.Completed:Wait()
+
+    local args = {
+        [1] = "Bomb"
+    }
+    local remote = replicatedStorage:FindFirstChild("RetroAbility")
+    if remote then
+        remote:FireServer(unpack(args))
+    end
+end)
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "SmashGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "SmashButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.8, -100, 0.7, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Strong leap"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 10
+
+button.MouseButton1Click:Connect(function()
+    humanoid.JumpPower = 130
+    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+
+    local animation = Instance.new("Animation")
+    animation.AnimationId = "rbxassetid://15437009238"
+    local track = humanoid:LoadAnimation(animation)
+    track:AdjustSpeed(2)
+    track:Play()
+
+    task.wait(1.5)
+
+    local args = {
+        [1] = "Ban Hammer"
+    }
+    local remote = replicatedStorage:FindFirstChild("RetroAbility")
+    if remote then
+        remote:FireServer(unpack(args))
+    end
+end)
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local players = game:GetService("Players")
+local runService = game:GetService("RunService")
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "DeathBarrageGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "DeathBarrageButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.7, -100, 0.7, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Death Barrage"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 10
+
+button.MouseButton1Click:Connect(function()
+    local slapEnabled = true
+    local slapDistance = 30
+    local slapCooldown = 0.585
+    local lastSlapTime = 0
+
+    local function slapClosestPlayer()
+        if not slapEnabled then return end
+
+        local closestPlayer = nil
+        local closestDistance = slapDistance
+
+        if character and humanoidRootPart then
+            local playerPosition = humanoidRootPart.Position
+
+            for _, otherPlayer in pairs(players:GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local otherPlayerPosition = otherPlayer.Character.HumanoidRootPart.Position
+                    local distance = (playerPosition - otherPlayerPosition).Magnitude
+
+                    if distance <= closestDistance then
+                        closestDistance = distance
+                        closestPlayer = otherPlayer
+                    end
+                end
+            end
+
+            if closestPlayer and tick() - lastSlapTime >= slapCooldown then
+                lastSlapTime = tick()
+                if closestPlayer.Character and closestPlayer.Character:FindFirstChild("Head") then
+                    local head = closestPlayer.Character.Head
+                    local args = {head}
+                    local remote = replicatedStorage:FindFirstChild("PlagueHit")
+                    if remote then
+                        remote:FireServer(unpack(args))
+                    end
+                end
+            end
+        end
+    end
+
+    local animation = Instance.new("Animation")
+    animation.AnimationId = "rbxassetid://72332989686758"
+    local track = humanoid:LoadAnimation(animation)
+    track.Looped = true
+    track:Play()
+
+    local stopTime = os.clock() + 8
+
+    humanoid.WalkSpeed = 60
+
+    task.spawn(function()
+        while os.clock() < stopTime do
+            local args = {
+                [1] = "fullcharged"
+            }
+            replicatedStorage:FindFirstChild("slapstick"):FireServer(unpack(args))
+            task.wait(0.1)
+        end
+    end)
+
+    task.spawn(function()
+        while os.clock() < stopTime do
+            local closestPlayer = nil
+            local closestDistance = 15
+
+            for _, otherPlayer in pairs(players:GetPlayers()) do
+                if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local distance = (humanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if distance <= closestDistance then
+                        closestDistance = distance
+                        closestPlayer = otherPlayer
+                    end
+                end
+            end
+
+            if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                humanoidRootPart.CFrame = closestPlayer.Character.HumanoidRootPart.CFrame
+            end
+
+            task.wait(0.2)
+        end
+    end)
+
+    local slapAuraConnection = runService.RenderStepped:Connect(function()
+        if slapEnabled then
+            slapClosestPlayer()
+        end
+    end)
+
+    task.wait(8)
+
+    slapEnabled = false
+    slapAuraConnection:Disconnect()
+    track:Stop()
+    humanoid.WalkSpeed = 16
+end)
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local tweenService = game:GetService("TweenService")
+local debounce = false
+
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "DashGui"
+
+local button = Instance.new("TextButton", screenGui)
+button.Name = "DashButton"
+button.Size = UDim2.new(0, 50, 0, 50)
+button.Position = UDim2.new(0.9, -100, 0.7, -25)
+button.BackgroundColor3 = Color3.new(0, 0, 0)
+button.BorderColor3 = Color3.new(0, 1, 1)
+button.BorderSizePixel = 4
+button.Text = "Dash"
+button.TextColor3 = Color3.new(1, 1, 1)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 20
+
+button.MouseButton1Click:Connect(function()
+    if debounce then return end
+    debounce = true
+
+    local lookVector = humanoidRootPart.CFrame.LookVector
+    local targetPosition = humanoidRootPart.Position + lookVector * 25
+    local targetCFrame = CFrame.new(targetPosition) * CFrame.Angles(0, humanoidRootPart.CFrame:ToEulerAnglesYXZ())
+
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local dashTween = tweenService:Create(humanoidRootPart, tweenInfo, {CFrame = targetCFrame})
+
+    dashTween:Play()
+    dashTween.Completed:Wait()
+
+    debounce = false
+end)
